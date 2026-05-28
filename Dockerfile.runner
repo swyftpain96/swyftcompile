@@ -1,0 +1,58 @@
+FROM ubuntu:24.04
+
+# Avoid prompts from apt
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update and install dependencies via apt
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    nodejs \
+    npm \
+    g++ \
+    default-jdk \
+    curl \
+    wget \
+    unzip \
+    golang \
+    ghc \
+    sbcl \
+    ruby \
+    php \
+    lua5.3 \
+    dotnet-sdk-8.0 \
+    clang \
+    xz-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Install TypeScript
+RUN npm install -g typescript ts-node
+
+# Install Zig
+RUN wget -q https://ziglang.org/download/0.12.0/zig-linux-x86_64-0.12.0.tar.xz \
+    && tar -xf zig-linux-x86_64-0.12.0.tar.xz \
+    && mv zig-linux-x86_64-0.12.0 /opt/zig \
+    && rm zig-linux-x86_64-0.12.0.tar.xz
+ENV PATH="/opt/zig:${PATH}"
+
+# Install Odin (Using a known dev release binary)
+RUN wget -qO odin.zip https://github.com/odin-lang/Odin/releases/download/dev-2024-05/odin-ubuntu-amd64-dev-2024-05.zip \
+    && unzip -q odin.zip -d /opt/odin-tmp \
+    && if [ $(ls -1 /opt/odin-tmp | wc -l) -eq 1 ]; then mv /opt/odin-tmp/$(ls -1 /opt/odin-tmp) /opt/odin; else mv /opt/odin-tmp /opt/odin; fi \
+    && rm odin.zip \
+    && rm -rf /opt/odin-tmp
+ENV PATH="/opt/odin:${PATH}"
+
+# Install SP custom language
+RUN wget -qO /usr/local/bin/sp https://github.com/swyftpain96/sp_lang/releases/download/V-0.3/sp \
+    && chmod +x /usr/local/bin/sp
+
+# Set working directory
+WORKDIR /app
+
+# The container will be run interactively to receive code via stdin
+CMD ["/bin/bash"]
