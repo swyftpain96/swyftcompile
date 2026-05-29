@@ -53,7 +53,7 @@ export async function executeCode(language: string, code: string): Promise<Execu
 
   let versionCmd = '';
   let runCmd = '';
-  
+
   switch (normalizedLang) {
     case 'python':
     case 'py':
@@ -130,6 +130,38 @@ export async function executeCode(language: string, code: string): Promise<Execu
       runCmd = 'cat > main.lua && lua5.3 main.lua';
       versionCmd = 'lua5.3 -v';
       break;
+    case 'bash':
+    case 'sh':
+      runCmd = 'cat > main.sh && bash main.sh';
+      versionCmd = 'bash --version';
+      break;
+    case 'perl':
+    case 'pl':
+      runCmd = 'cat > main.pl && perl main.pl';
+      versionCmd = 'perl --version';
+      break;
+    case 'kotlin':
+    case 'kt':
+      runCmd = 'cat > main.kt && kotlinc main.kt -include-runtime -d main.jar 2>/dev/null && java -jar main.jar';
+      versionCmd = 'kotlinc -version';
+      break;
+    case 'r':
+      runCmd = 'cat > main.R && Rscript main.R';
+      versionCmd = 'Rscript --version';
+      break;
+    case 'elixir':
+    case 'ex':
+      runCmd = 'cat > main.exs && elixir main.exs';
+      versionCmd = 'elixir --version';
+      break;
+    case 'nim':
+      runCmd = 'cat > main.nim && nim compile --run --hints:off main.nim';
+      versionCmd = 'nim --version';
+      break;
+    case 'dart':
+      runCmd = 'cat > main.dart && dart run main.dart';
+      versionCmd = 'dart --version';
+      break;
     case 'sp':
       runCmd = 'cat > main.sp && sp main.sp';
       versionCmd = 'echo 0.0.4';
@@ -142,9 +174,11 @@ export async function executeCode(language: string, code: string): Promise<Execu
   const versionPromise = getCompilerVersion(normalizedLang, versionCmd);
   const startTime = performance.now();
 
-  // The command creates the dir, writes code, runs it, then removes the dir.
-  // Using () to run in subshell and capture exit code, so cleanup always runs.
-  const fullShCmd = `mkdir -p ${workDir} && cd ${workDir} && timeout 15s sh -c '${runCmd.replace(/'/g, "'\\''")}'; exitCode=$?; cd / && rm -rf ${workDir}; exit $exitCode`;
+  // Wrap user code with timing sentinels so we measure only the language runtime, not Docker overhead.
+  // We print a sentinel line __T0__=<nanoseconds> before and __T1__=<nanoseconds> after execution.
+  // These lines are stripped from output and used to compute actual execution time.
+  const timedRunCmd = `echo "__T0__=$(date +%s%N)" && ( ${runCmd} ); _exit=$?; echo "__T1__=$(date +%s%N)"; exit $_exit`;
+  const fullShCmd = `mkdir -p ${workDir} && cd ${workDir} && timeout 15s sh -c '${timedRunCmd.replace(/'/g, "'\\''")}'; exitCode=$?; cd / && rm -rf ${workDir}; exit $exitCode`;
   const dockerArgs = ['exec', '-i', daemonName, 'sh', '-c', fullShCmd];
 
   const output = await new Promise<string>((resolve, reject) => {
@@ -198,8 +232,26 @@ export async function executeCode(language: string, code: string): Promise<Execu
     }, 15000);
   });
 
-  const cleanOutput = stripAnsiSequences(output).trimEnd();
-  const executionTimeMs = Math.round(performance.now() - startTime);
+  const stripped = stripAnsiSequences(output);
+
+  // Parse timing sentinels emitted by the timed shell wrapper
+  const t0Match = stripped.match(/__T0__=(\d+)/);
+  const t1Match = stripped.match(/__T1__=(\d+)/);
+  let executionTimeMs: number;
+  if (t0Match && t1Match) {
+    const ns = BigInt(t1Match[1]) - BigInt(t0Match[1]);
+    executionTimeMs = Number(ns / 1_000_000n);
+  } else {
+    // Fallback to wall-clock time if sentinels are missing
+    executionTimeMs = Math.round(performance.now() - startTime);
+  }
+
+  // Strip sentinel lines from user-visible output
+  const cleanOutput = stripped
+    .replace(/__T0__=\d+\n?/g, '')
+    .replace(/__T1__=\d+\n?/g, '')
+    .trimEnd();
+
   const compilerVersion = await versionPromise;
 
   return {

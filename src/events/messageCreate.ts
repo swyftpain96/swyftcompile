@@ -22,6 +22,21 @@ const event: Event = {
         return;
       }
     }
+
+    // If the message is a reply to another message that starts with .compile,
+    // treat the replied-to message as the full compile command
+    if (message.reference) {
+      const ref = await message.fetchReference().catch(() => null);
+      if (ref && !ref.author.bot) {
+        const refContent = ref.content.trim();
+        for (const cmd of prefixCommands) {
+          if (refContent.startsWith(cmd.trigger)) {
+            await cmd.execute(message, refContent);
+            return;
+          }
+        }
+      }
+    }
   },
 };
 

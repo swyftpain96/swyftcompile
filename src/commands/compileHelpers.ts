@@ -27,6 +27,15 @@ export const EXTENSION_TO_LANG: Record<string, string> = {
   'rb': 'ruby',
   'php': 'php',
   'lua': 'lua',
+  'sh': 'bash',
+  'bash': 'bash',
+  'pl': 'perl',
+  'kt': 'kotlin',
+  'r': 'r',
+  'ex': 'elixir',
+  'exs': 'elixir',
+  'nim': 'nim',
+  'dart': 'dart',
   'sp': 'sp'
 };
 
@@ -86,6 +95,33 @@ export const LANGUAGE_FORBIDDEN_RULES: Record<string, ForbiddenRule[]> = {
     { regex: /\bnet\s*\.\s*serve\s*\(/, message: 'starting an HTTP server is not supported in this bot environment.' },
     { regex: /\bconsole\s*\.\s*read\s*\(/, message: 'interactive console input is not supported in this bot environment.' },
     { regex: /\buse\s+gui\b|\bgui\s*\./, message: 'GUI-related features are not supported in this bot environment.' }
+  ],
+  bash: [
+    { regex: /\b(curl|wget|nc|netcat|ncat|ssh|scp|ftp|telnet|nmap)\b/, message: 'network tools are forbidden in this environment.' },
+    { regex: /\b(rm\s+-rf|mkfs|dd\s+if|fdisk|shutdown|reboot|halt|init\s+0)\b/, message: 'destructive system commands are forbidden.' },
+    { regex: /\b(docker|kubectl|systemctl|service|mount|umount|chroot)\b/, message: 'container and system management commands are forbidden.' },
+    { regex: /:[\s]*\(\s*\)\s*\{.*:[\s]*\|.*:[\s]*&.*\}/, message: 'fork bomb patterns are not allowed.' }
+  ],
+  perl: [
+    { regex: /\b(system|exec|open|backtick|qx\/|`[^`]*`)/, message: 'shell execution and file operations are forbidden.' },
+    { regex: /\b(unlink|rename|mkdir|rmdir|chdir)\s*\(/, message: 'file system operations are forbidden in this environment.' }
+  ],
+  kotlin: [
+    { regex: /\bimport\s+java\.(io|nio|net)\b/, message: 'direct Java IO and networking imports are restricted.' },
+    { regex: /\b(Runtime\.getRuntime|ProcessBuilder|System\.exit)\b/, message: 'process operations are forbidden in this environment.' }
+  ],
+  r: [
+    { regex: /\b(system|system2|shell|shell_exec|pipe|file\.remove|unlink|file\.rename)\s*\(/, message: 'shell and file operations are forbidden in this environment.' }
+  ],
+  elixir: [
+    { regex: /\b(System\.cmd|:os\.cmd|Port\.open|File\.rm|File\.rm_rf)\b/, message: 'shell and file operations are forbidden in this environment.' }
+  ],
+  nim: [
+    { regex: /\b(execCmd|execProcess|execShellCmd|os\.removeFile|os\.removeDir)\b/, message: 'shell and file operations are forbidden in this environment.' }
+  ],
+  dart: [
+    { regex: /\bimport\s+'dart:io'/, message: 'dart:io filesystem and process access is restricted.' },
+    { regex: /\b(Process\.run|Process\.start|File\(.+\)\.delete|Directory\(.+\)\.delete)\b/, message: 'process and file operations are forbidden in this environment.' }
   ]
 };
 
