@@ -1,74 +1,64 @@
-FROM ubuntu:24.04
+FROM archlinux:latest
 
-# Avoid prompts from apt
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Update and install all language runtimes/compilers via apt
-RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
+RUN pacman -Syu --noconfirm --needed \
+    aspnet-targeting-pack \
+    base-devel \
+    bash \
+    ca-certificates \
+    clang \
+    curl \
+    dotnet-sdk \
+    elixir \
+    gcc \
+    ghc \
+    git \
+    go \
+    jdk-openjdk \
+    lua \
+    nim \
     nodejs \
     npm \
-    g++ \
-    default-jdk \
-    curl \
-    wget \
-    unzip \
-    golang \
-    ghc \
-    sbcl \
-    ruby \
-    php \
-    lua5.3 \
-    dotnet-sdk-8.0 \
-    clang \
-    xz-utils \
-    bash \
     perl \
-    r-base \
-    elixir \
-    nim \
-    && rm -rf /var/lib/apt/lists/*
+    php \
+    python \
+    python-pip \
+    r \
+    ruby \
+    sbcl \
+    unzip \
+    wget \
+    xz \
+    zig \
+    && pacman -Scc --noconfirm
 
-# Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# Install TypeScript & ts-node
 RUN npm install -g typescript ts-node
 
-# Install Kotlin compiler
-RUN wget -qO /tmp/kotlin.zip https://github.com/JetBrains/kotlin/releases/download/v2.0.21/kotlin-compiler-2.0.21.zip \
+RUN python -c "import json, urllib.request; data=json.load(urllib.request.urlopen('https://api.github.com/repos/JetBrains/kotlin/releases/latest')); asset=next(a for a in data['assets'] if a['name'].startswith('kotlin-compiler-') and a['name'].endswith('.zip')); print(asset['browser_download_url'])" > /tmp/kotlin-url \
+    && wget -qO /tmp/kotlin.zip "$(cat /tmp/kotlin-url)" \
     && unzip -q /tmp/kotlin.zip -d /opt \
-    && rm /tmp/kotlin.zip
+    && rm /tmp/kotlin.zip /tmp/kotlin-url
 ENV PATH="/opt/kotlinc/bin:${PATH}"
 
-# Install Dart SDK
-RUN wget -qO /tmp/dart.tar.gz https://storage.googleapis.com/dart-archive/channels/stable/release/latest/sdk/dartsdk-linux-x64-release.zip \
-    && unzip -q /tmp/dart.tar.gz -d /opt \
-    && rm /tmp/dart.tar.gz
+RUN wget -qO /tmp/dart.zip https://storage.googleapis.com/dart-archive/channels/stable/release/latest/sdk/dartsdk-linux-x64-release.zip \
+    && unzip -q /tmp/dart.zip -d /opt \
+    && rm /tmp/dart.zip
 ENV PATH="/opt/dart-sdk/bin:${PATH}"
 
-# Install Zig
-RUN wget -q https://ziglang.org/download/0.12.0/zig-linux-x86_64-0.12.0.tar.xz \
-    && tar -xf zig-linux-x86_64-0.12.0.tar.xz \
-    && mv zig-linux-x86_64-0.12.0 /opt/zig \
-    && rm zig-linux-x86_64-0.12.0.tar.xz
-ENV PATH="/opt/zig:${PATH}"
-
-# Install Odin
-RUN wget -qO odin.zip https://github.com/odin-lang/Odin/releases/download/dev-2024-05/odin-ubuntu-amd64-dev-2024-05.zip \
-    && unzip -q odin.zip -d /opt/odin-tmp \
-    && if [ $(ls -1 /opt/odin-tmp | wc -l) -eq 1 ]; then mv /opt/odin-tmp/$(ls -1 /opt/odin-tmp) /opt/odin; else mv /opt/odin-tmp /opt/odin; fi \
-    && rm odin.zip \
+RUN python -c "import json, urllib.request; data=json.load(urllib.request.urlopen('https://api.github.com/repos/odin-lang/Odin/releases/latest')); asset=next(a for a in data['assets'] if 'linux-amd64' in a['name'].lower() and a['name'].endswith('.tar.gz')); print(asset['browser_download_url'])" > /tmp/odin-url \
+    && wget -qO /tmp/odin.tar.gz "$(cat /tmp/odin-url)" \
+    && mkdir -p /opt/odin-tmp \
+    && tar -xzf /tmp/odin.tar.gz -C /opt/odin-tmp \
+    && if [ "$(find /opt/odin-tmp -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 1 ]; then mv /opt/odin-tmp/* /opt/odin; else mv /opt/odin-tmp /opt/odin; fi \
+    && rm /tmp/odin.tar.gz /tmp/odin-url \
     && rm -rf /opt/odin-tmp
 ENV PATH="/opt/odin:${PATH}"
 
-# Install SP custom language
 RUN wget -qO /usr/local/bin/sp https://github.com/swyftpain96/sp_lang/releases/download/V-0.3/sp \
     && chmod +x /usr/local/bin/sp
 
-# Set working directory
 WORKDIR /app
 
 CMD ["/bin/bash"]

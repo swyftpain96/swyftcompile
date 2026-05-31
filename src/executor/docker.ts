@@ -3,9 +3,18 @@ import { promisify } from 'util';
 import { randomUUID } from 'crypto';
 
 const execAsync = promisify(exec);
+const EXECUTION_TIMEOUT_MS = 30_000;
+const EXECUTION_TIMEOUT_SECONDS = Math.ceil(EXECUTION_TIMEOUT_MS / 1000);
 
 function stripAnsiSequences(text: string): string {
   return text.replace(/\u001b\[[0-9;]*[A-Za-z]/g, '');
+}
+
+function stripToolchainNoise(text: string): string {
+  return text.replace(
+    /^An issue was encountered verifying workloads\. For more information, run "dotnet workload update"\.\r?\n?/gm,
+    ''
+  );
 }
 
 export interface ExecutionResult {
@@ -24,8 +33,8 @@ export async function initDockerDaemons() {
     // Ignore errors if they don't exist
   }
   
-  await execAsync('docker run -d --name swyft-daemon-isolated --rm -i --network none --memory 512m --cpus="1.0" --pids-limit 128 --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,nosuid,nodev,size=128m code-runner-image sleep infinity');
-  await execAsync('docker run -d --name swyft-daemon-net --rm -i --memory 512m --cpus="1.0" --pids-limit 128 --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,nosuid,nodev,size=128m code-runner-image sleep infinity');
+  await execAsync('docker run -d --name swyft-daemon-isolated --rm -i --network none --memory 512m --cpus="1.0" --pids-limit 128 --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,nosuid,nodev,exec,size=384m code-runner-image sleep infinity');
+  await execAsync('docker run -d --name swyft-daemon-net --rm -i --memory 512m --cpus="1.0" --pids-limit 128 --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,nosuid,nodev,exec,size=384m code-runner-image sleep infinity');
   console.log("Docker daemons are ready.");
 }
 
@@ -33,8 +42,8 @@ async function getCompilerVersion(language: string, versionCmd: string): Promise
   if (versionCache[language]) return versionCache[language];
   try {
     // Both daemons have the same tools installed, so we can use isolated for checking versions
-    const { stdout } = await execAsync(`docker exec -i swyft-daemon-isolated ${versionCmd}`);
-    let version = stdout.trim().split('\n')[0];
+    const { stdout, stderr } = await execAsync(`docker exec -i swyft-daemon-isolated ${versionCmd}`);
+    let version = (stdout || stderr).trim().split('\n')[0];
     if (version.length > 50) version = version.substring(0, 50) + '...';
     versionCache[language] = version;
     return version;
@@ -69,7 +78,7 @@ export async function executeCode(language: string, code: string): Promise<Execu
       break;
     case 'typescript':
     case 'ts':
-      runCmd = 'cat > main.ts && ts-node main.ts';
+      runCmd = 'cat > main.ts && tsc main.ts --target ES2022 --module commonjs --outDir . && node main.js';
       versionCmd = 'tsc --version';
       break;
     case 'cpp':
@@ -96,7 +105,7 @@ export async function executeCode(language: string, code: string): Promise<Execu
     case 'c#':
     case 'csharp':
     case 'cs':
-      runCmd = 'mkdir -p app && cd app && dotnet new console --force > /dev/null && cat > Program.cs && dotnet run';
+      runCmd = 'mkdir -p app && cd app && cat > Program.cs && printf "%s\\n" "<Project Sdk=\\"Microsoft.NET.Sdk\\">" "  <PropertyGroup>" "    <OutputType>Exe</OutputType>" "    <TargetFramework>net10.0</TargetFramework>" "    <ImplicitUsings>enable</ImplicitUsings>" "    <Nullable>enable</Nullable>" "    <RestoreIgnoreFailedSources>true</RestoreIgnoreFailedSources>" "  </PropertyGroup>" "</Project>" > app.csproj && printf "%s\\n" "<?xml version=\\"1.0\\" encoding=\\"utf-8\\"?>" "<configuration>" "  <packageSources>" "    <clear />" "  </packageSources>" "</configuration>" > NuGet.Config && dotnet run --project app.csproj';
       versionCmd = 'dotnet --version';
       break;
     case 'haskell':
@@ -127,8 +136,8 @@ export async function executeCode(language: string, code: string): Promise<Execu
       versionCmd = 'php --version';
       break;
     case 'lua':
-      runCmd = 'cat > main.lua && lua5.3 main.lua';
-      versionCmd = 'lua5.3 -v';
+      runCmd = 'cat > main.lua && lua main.lua';
+      versionCmd = 'lua -v';
       break;
     case 'bash':
     case 'sh':
@@ -178,7 +187,22 @@ export async function executeCode(language: string, code: string): Promise<Execu
   // We print a sentinel line __T0__=<nanoseconds> before and __T1__=<nanoseconds> after execution.
   // These lines are stripped from output and used to compute actual execution time.
   const timedRunCmd = `echo "__T0__=$(date +%s%N)" && ( ${runCmd} ); _exit=$?; echo "__T1__=$(date +%s%N)"; exit $_exit`;
-  const fullShCmd = `mkdir -p ${workDir} && cd ${workDir} && timeout 15s sh -c '${timedRunCmd.replace(/'/g, "'\\''")}'; exitCode=$?; cd / && rm -rf ${workDir}; exit $exitCode`;
+  const runEnv = [
+    `HOME=${workDir}`,
+    `XDG_CACHE_HOME=${workDir}/.cache`,
+    `GOCACHE=${workDir}/.cache/go-build`,
+    `NIMCACHE=${workDir}/.cache/nim`,
+    `ZIG_GLOBAL_CACHE_DIR=${workDir}/.cache/zig`,
+    `DOTNET_CLI_HOME=${workDir}`,
+    'DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1',
+    'DOTNET_CLI_TELEMETRY_OPTOUT=1',
+    'DOTNET_NOLOGO=1',
+    'DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=true',
+    'RUSTUP_HOME=/root/.rustup',
+    'CARGO_HOME=/root/.cargo',
+    'DART_SUPPRESS_ANALYTICS=true',
+  ].join(' ');
+  const fullShCmd = `mkdir -p ${workDir}/.cache && cd ${workDir} && ${runEnv} timeout ${EXECUTION_TIMEOUT_SECONDS}s sh -c '${timedRunCmd.replace(/'/g, "'\\''")}'; exitCode=$?; cd / && rm -rf ${workDir}; exit $exitCode`;
   const dockerArgs = ['exec', '-i', daemonName, 'sh', '-c', fullShCmd];
 
   const output = await new Promise<string>((resolve, reject) => {
@@ -211,7 +235,7 @@ export async function executeCode(language: string, code: string): Promise<Execu
       if (codeStatus !== 0) {
         resolve(stderr || stdout || `Process exited with code ${codeStatus}`);
       } else {
-        resolve(stdout || 'Execution finished with no output.');
+        resolve(stdout + stderr || 'Execution finished with no output.');
       }
     });
 
@@ -229,10 +253,10 @@ export async function executeCode(language: string, code: string): Promise<Execu
       finished = true;
       child.kill();
       resolve(stdout + '\n[Execution Timed Out]');
-    }, 15000);
+    }, EXECUTION_TIMEOUT_MS);
   });
 
-  const stripped = stripAnsiSequences(output);
+  const stripped = stripToolchainNoise(stripAnsiSequences(output));
 
   // Parse timing sentinels emitted by the timed shell wrapper
   const t0Match = stripped.match(/__T0__=(\d+)/);

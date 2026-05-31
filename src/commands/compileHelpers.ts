@@ -5,7 +5,7 @@ export interface ForbiddenRule {
   message: string;
 }
 
-export const CODE_BLOCK_REGEX = /```(\w*)\s*?\n([\s\S]*?)```/;
+export const CODE_BLOCK_REGEX = /```(?:([A-Za-z0-9_+#.-]+)[^\S\r\n]*(?:\r?\n))?([\s\S]*?)```/;
 
 export const EXTENSION_TO_LANG: Record<string, string> = {
   'py': 'python',
