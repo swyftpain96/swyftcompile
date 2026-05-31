@@ -85,7 +85,7 @@ export async function executeCode(language: string, code: string): Promise<Execu
     case 'c++':
     case 'c':
     case 'cc':
-      runCmd = 'cat > main.cpp && g++ main.cpp && ./a.out';
+      runCmd = 'cat > main.cpp && g++ -std=gnu++23 main.cpp -lstdc++exp -o main && ./main';
       versionCmd = 'g++ --version';
       break;
     case 'java':
@@ -94,7 +94,7 @@ export async function executeCode(language: string, code: string): Promise<Execu
       break;
     case 'rust':
     case 'rs':
-      runCmd = 'cat > main.rs && rustc main.rs && ./main';
+      runCmd = 'cat > main.rs && rustc --edition=2024 main.rs && ./main';
       versionCmd = 'rustc --version';
       break;
     case 'go':
