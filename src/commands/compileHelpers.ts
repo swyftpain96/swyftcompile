@@ -1,4 +1,5 @@
 import { Attachment, EmbedBuilder } from 'discord.js';
+import { CONTACT_FOOTER } from '../constants/contact';
 
 export interface ForbiddenRule {
   regex: RegExp;
@@ -130,6 +131,7 @@ export function buildUserErrorEmbed(description: string) {
     .setTitle('❌ Error')
     .setColor('#FF0000')
     .setDescription(description)
+    .setFooter({ text: CONTACT_FOOTER })
     .setTimestamp();
 
   return { embeds: [errorEmbed] };

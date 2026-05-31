@@ -1,5 +1,6 @@
 import { Attachment, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { executeCode } from '../executor/docker';
+import { CONTACT_FOOTER } from '../constants/contact';
 import { buildUserErrorEmbed, checkRateLimit, getForbiddenCodeMessage, parseCompileInput } from './compileHelpers';
 
 export async function handleCompileCommand(
@@ -54,7 +55,7 @@ export async function handleCompileCommand(
         { name: '💻 Language', value: language, inline: true },
         { name: '⏱️ Execution Time', value: `${result.executionTimeMs}ms`, inline: true }
       )
-      .setFooter({ text: result.compilerVersion })
+      .setFooter({ text: `${result.compilerVersion} | ${CONTACT_FOOTER}` })
       .setTimestamp();
 
     return { embeds: [embed], components: [donoRow] };
@@ -63,6 +64,7 @@ export async function handleCompileCommand(
       .setTitle('Execution Error')
       .setColor('#FF0000')
       .setDescription(`\`\`\`\n${err.message}\n\`\`\``)
+      .setFooter({ text: CONTACT_FOOTER })
       .addFields({ name: '💻 Language', value: language, inline: true })
       .setTimestamp();
 
