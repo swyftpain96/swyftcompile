@@ -3,6 +3,16 @@ import { executeCode } from '../executor/docker';
 import { CONTACT_FOOTER } from '../constants/contact';
 import { buildUserErrorEmbed, checkRateLimit, getForbiddenCodeMessage, parseCompileInput } from './compileHelpers';
 
+function addCompileHint(output: string, language: string, sourceFile: string) {
+  const normalized = language.toLowerCase();
+  const isCOrCpp = ['c', 'cpp', 'c++', 'cc', 'cxx'].includes(normalized);
+  if (!isCOrCpp || !/undefined reference to [`']main['`]/.test(output)) {
+    return output;
+  }
+
+  return `${output}\n\nNote: Docker compiled your submitted content as ${sourceFile}. This linker error means the compiled file did not define a valid main entry point.`;
+}
+
 export async function handleCompileCommand(
   content: string,
   explicitLang?: string,
@@ -46,14 +56,17 @@ export async function handleCompileCommand(
 
   try {
     const result = await executeCode(language, trimmedCode);
+    const output = addCompileHint(result.output || 'No output.', language, result.sourceFile);
+    const succeeded = result.exitCode === 0 && !result.timedOut;
 
     const embed = new EmbedBuilder()
-      .setTitle('Code Execution Result')
-      .setColor('#00FF00')
-      .setDescription(`\`\`\`\n${result.output || 'No output.'}\n\`\`\``)
+      .setTitle(succeeded ? 'Code Execution Result' : 'Compilation or Execution Error')
+      .setColor(succeeded ? '#00FF00' : '#FF0000')
+      .setDescription(`\`\`\`\n${output}\n\`\`\``)
       .addFields(
         { name: '💻 Language', value: language, inline: true },
-        { name: '⏱️ Execution Time', value: `${result.executionTimeMs}ms`, inline: true }
+        { name: '⏱️ Execution Time', value: `${result.executionTimeMs}ms`, inline: true },
+        { name: 'Source File', value: result.sourceFile, inline: true }
       )
       .setFooter({ text: `${result.compilerVersion} | ${CONTACT_FOOTER}` })
       .setTimestamp();

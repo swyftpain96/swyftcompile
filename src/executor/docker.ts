@@ -21,6 +21,9 @@ export interface ExecutionResult {
   output: string;
   executionTimeMs: number;
   compilerVersion: string;
+  sourceFile: string;
+  exitCode: number | null;
+  timedOut: boolean;
 }
 
 const versionCache: Record<string, string> = {};
@@ -62,10 +65,12 @@ export async function executeCode(language: string, code: string): Promise<Execu
 
   let versionCmd = '';
   let runCmd = '';
+  let sourceFile = 'main';
 
   switch (normalizedLang) {
     case 'python':
     case 'py':
+      sourceFile = 'main.py';
       runCmd = 'cat > main.py && python3 main.py';
       versionCmd = 'python3 --version';
       break;
@@ -73,11 +78,13 @@ export async function executeCode(language: string, code: string): Promise<Execu
     case 'js':
     case 'node':
     case 'nodejs':
+      sourceFile = 'main.js';
       runCmd = 'cat > main.js && node main.js';
       versionCmd = 'node --version';
       break;
     case 'typescript':
     case 'ts':
+      sourceFile = 'main.ts';
       runCmd = 'cat > main.ts && tsc main.ts --target ES2022 --module commonjs --outDir . && node main.js';
       versionCmd = 'tsc --version';
       break;
@@ -85,97 +92,118 @@ export async function executeCode(language: string, code: string): Promise<Execu
     case 'c++':
     case 'cc':
     case 'cxx':
+      sourceFile = 'main.cpp';
       runCmd = 'cat > main.cpp && g++ -std=gnu++23 main.cpp -lstdc++exp -o main && ./main';
       versionCmd = 'g++ --version';
       break;
     case 'c':
+      sourceFile = 'main.c';
       runCmd = 'cat > main.c && gcc -std=gnu23 main.c -o main && ./main';
       versionCmd = 'gcc --version';
       break;
     case 'java':
+      sourceFile = 'Main.java';
       runCmd = 'cat > Main.java && javac Main.java && java Main';
       versionCmd = 'javac --version';
       break;
     case 'rust':
     case 'rs':
+      sourceFile = 'main.rs';
       runCmd = 'cat > main.rs && rustc --edition=2024 main.rs && ./main';
       versionCmd = 'rustc --version';
       break;
     case 'go':
     case 'golang':
+      sourceFile = 'main.go';
       runCmd = 'cat > main.go && go run main.go';
       versionCmd = 'go version';
       break;
     case 'c#':
     case 'csharp':
     case 'cs':
+      sourceFile = 'Program.cs';
       runCmd = 'mkdir -p app && cd app && cat > Program.cs && printf "%s\\n" "<Project Sdk=\\"Microsoft.NET.Sdk\\">" "  <PropertyGroup>" "    <OutputType>Exe</OutputType>" "    <TargetFramework>net10.0</TargetFramework>" "    <ImplicitUsings>enable</ImplicitUsings>" "    <Nullable>enable</Nullable>" "    <RestoreIgnoreFailedSources>true</RestoreIgnoreFailedSources>" "  </PropertyGroup>" "</Project>" > app.csproj && printf "%s\\n" "<?xml version=\\"1.0\\" encoding=\\"utf-8\\"?>" "<configuration>" "  <packageSources>" "    <clear />" "  </packageSources>" "</configuration>" > NuGet.Config && dotnet run --project app.csproj';
       versionCmd = 'dotnet --version';
       break;
     case 'haskell':
     case 'hs':
+      sourceFile = 'main.hs';
       runCmd = 'cat > main.hs && runghc main.hs';
       versionCmd = 'ghc --version';
       break;
     case 'lisp':
     case 'cl':
+      sourceFile = 'main.lisp';
       runCmd = 'cat > main.lisp && sbcl --script main.lisp';
       versionCmd = 'sbcl --version';
       break;
     case 'zig':
+      sourceFile = 'main.zig';
       runCmd = 'cat > main.zig && zig run main.zig';
       versionCmd = 'zig version';
       break;
     case 'odin':
+      sourceFile = 'main.odin';
       runCmd = 'cat > main.odin && odin run main.odin -file';
       versionCmd = 'odin version';
       break;
     case 'ruby':
     case 'rb':
+      sourceFile = 'main.rb';
       runCmd = 'cat > main.rb && ruby main.rb';
       versionCmd = 'ruby --version';
       break;
     case 'php':
+      sourceFile = 'main.php';
       runCmd = 'cat > main.php && php main.php';
       versionCmd = 'php --version';
       break;
     case 'lua':
+      sourceFile = 'main.lua';
       runCmd = 'cat > main.lua && lua main.lua';
       versionCmd = 'lua -v';
       break;
     case 'bash':
     case 'sh':
+      sourceFile = 'main.sh';
       runCmd = 'cat > main.sh && bash main.sh';
       versionCmd = 'bash --version';
       break;
     case 'perl':
     case 'pl':
+      sourceFile = 'main.pl';
       runCmd = 'cat > main.pl && perl main.pl';
       versionCmd = 'perl --version';
       break;
     case 'kotlin':
     case 'kt':
+      sourceFile = 'main.kt';
       runCmd = 'cat > main.kt && kotlinc main.kt -include-runtime -d main.jar 2>/dev/null && java -jar main.jar';
       versionCmd = 'kotlinc -version';
       break;
     case 'r':
+      sourceFile = 'main.R';
       runCmd = 'cat > main.R && Rscript main.R';
       versionCmd = 'Rscript --version';
       break;
     case 'elixir':
     case 'ex':
+      sourceFile = 'main.exs';
       runCmd = 'cat > main.exs && elixir main.exs';
       versionCmd = 'elixir --version';
       break;
     case 'nim':
+      sourceFile = 'main.nim';
       runCmd = 'cat > main.nim && nim compile --run --hints:off main.nim';
       versionCmd = 'nim --version';
       break;
     case 'dart':
+      sourceFile = 'main.dart';
       runCmd = 'cat > main.dart && dart run main.dart';
       versionCmd = 'dart --version';
       break;
     case 'sp':
+      sourceFile = 'main.sp';
       runCmd = 'cat > main.sp && sp main.sp';
       versionCmd = 'echo 0.0.4';
       break;
@@ -209,7 +237,7 @@ export async function executeCode(language: string, code: string): Promise<Execu
   const fullShCmd = `mkdir -p ${workDir}/.cache && cd ${workDir} && ${runEnv} timeout ${EXECUTION_TIMEOUT_SECONDS}s sh -c '${timedRunCmd.replace(/'/g, "'\\''")}'; exitCode=$?; cd / && rm -rf ${workDir}; exit $exitCode`;
   const dockerArgs = ['exec', '-i', daemonName, 'sh', '-c', fullShCmd];
 
-  const output = await new Promise<string>((resolve, reject) => {
+  const execution = await new Promise<{ output: string; exitCode: number | null; timedOut: boolean }>((resolve, reject) => {
     const child = spawn('docker', dockerArgs);
     
     let stdout = '';
@@ -237,9 +265,9 @@ export async function executeCode(language: string, code: string): Promise<Execu
       if (finished) return;
       finished = true;
       if (codeStatus !== 0) {
-        resolve(stderr || stdout || `Process exited with code ${codeStatus}`);
+        resolve({ output: stderr || stdout || `Process exited with code ${codeStatus}`, exitCode: codeStatus, timedOut: false });
       } else {
-        resolve(stdout + stderr || 'Execution finished with no output.');
+        resolve({ output: stdout + stderr || 'Execution finished with no output.', exitCode: codeStatus, timedOut: false });
       }
     });
 
@@ -256,11 +284,11 @@ export async function executeCode(language: string, code: string): Promise<Execu
       if (finished) return;
       finished = true;
       child.kill();
-      resolve(stdout + '\n[Execution Timed Out]');
+      resolve({ output: stdout + '\n[Execution Timed Out]', exitCode: null, timedOut: true });
     }, EXECUTION_TIMEOUT_MS);
   });
 
-  const stripped = stripToolchainNoise(stripAnsiSequences(output));
+  const stripped = stripToolchainNoise(stripAnsiSequences(execution.output));
 
   // Parse timing sentinels emitted by the timed shell wrapper
   const t0Match = stripped.match(/__T0__=(\d+)/);
@@ -285,6 +313,9 @@ export async function executeCode(language: string, code: string): Promise<Execu
   return {
     output: cleanOutput,
     executionTimeMs,
-    compilerVersion
+    compilerVersion,
+    sourceFile,
+    exitCode: execution.exitCode,
+    timedOut: execution.timedOut
   };
 }
