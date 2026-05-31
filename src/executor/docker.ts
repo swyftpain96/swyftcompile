@@ -83,10 +83,14 @@ export async function executeCode(language: string, code: string): Promise<Execu
       break;
     case 'cpp':
     case 'c++':
-    case 'c':
     case 'cc':
+    case 'cxx':
       runCmd = 'cat > main.cpp && g++ -std=gnu++23 main.cpp -lstdc++exp -o main && ./main';
       versionCmd = 'g++ --version';
+      break;
+    case 'c':
+      runCmd = 'cat > main.c && gcc -std=gnu23 main.c -o main && ./main';
+      versionCmd = 'gcc --version';
       break;
     case 'java':
       runCmd = 'cat > Main.java && javac Main.java && java Main';

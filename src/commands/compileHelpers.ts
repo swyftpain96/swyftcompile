@@ -214,7 +214,7 @@ export async function parseCompileInput(
   }
 
   if (!language && content) {
-    const firstWordMatch = content.trim().match(/^(\w+)/);
+      const firstWordMatch = content.trim().match(/^([A-Za-z0-9_+#.-]+)/);
     if (firstWordMatch && !content.trim().startsWith('```')) {
       language = firstWordMatch[1];
       if (code.startsWith(language)) {
