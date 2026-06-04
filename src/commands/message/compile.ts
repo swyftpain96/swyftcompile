@@ -13,7 +13,18 @@ const command: MessageCommand = {
       message.channel.sendTyping().catch(() => {});
     }
 
-    const argsString = content.slice('.compile'.length).trim();
+    let argsString = '';
+    if (content.startsWith('.compile')) {
+      argsString = content.slice('.compile'.length).trim();
+    } else if (message.client.user) {
+      const mention1 = `<@${message.client.user.id}>`;
+      const mention2 = `<@!${message.client.user.id}>`;
+      if (content.startsWith(mention1)) {
+        argsString = content.slice(mention1.length).trim();
+      } else if (content.startsWith(mention2)) {
+        argsString = content.slice(mention2.length).trim();
+      }
+    }
     const attachment = message.attachments.first() ?? undefined;
 
     // If the user is replying to another message, pull code from that message

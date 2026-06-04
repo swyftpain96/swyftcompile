@@ -23,6 +23,19 @@ const event: Event = {
       }
     }
 
+    // mention matches (act as .compile)
+    if (message.client.user) {
+      const mention1 = `<@${message.client.user.id}>`;
+      const mention2 = `<@!${message.client.user.id}>`;
+      if (content.startsWith(mention1) || content.startsWith(mention2)) {
+        const compileCmd = prefixCommands.find(c => c.name === 'compile');
+        if (compileCmd) {
+          await compileCmd.execute(message, content);
+          return;
+        }
+      }
+    }
+
     // If the message is a reply to another message that starts with .compile,
     // treat the replied-to message as the full compile command
     if (message.reference) {
