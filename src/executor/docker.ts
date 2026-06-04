@@ -61,118 +61,142 @@ export async function executeCode(language: string, code: string): Promise<Execu
   const workDir = `/tmp/run_${id}`;
 
   let versionCmd = '';
-  let runCmd = '';
+  let compileCmd = '';
+  let execCmd = '';
 
   switch (normalizedLang) {
     case 'python':
     case 'py':
-      runCmd = 'cat > main.py && python3 main.py';
+      compileCmd = 'cat > main.py';
+      execCmd = 'python3 main.py';
       versionCmd = 'python3 --version';
       break;
     case 'javascript':
     case 'js':
     case 'node':
     case 'nodejs':
-      runCmd = 'cat > main.js && node main.js';
+      compileCmd = 'cat > main.js';
+      execCmd = 'node main.js';
       versionCmd = 'node --version';
       break;
     case 'typescript':
     case 'ts':
-      runCmd = 'cat > main.ts && tsc main.ts --target ES2022 --module commonjs --outDir . && node main.js';
+      compileCmd = 'cat > main.ts && tsc main.ts --target ES2022 --module commonjs --outDir .';
+      execCmd = 'node main.js';
       versionCmd = 'tsc --version';
       break;
     case 'cpp':
     case 'c++':
     case 'c':
     case 'cc':
-      runCmd = 'cat > main.cpp && g++ -std=gnu++23 main.cpp -lstdc++exp && ./a.out';
+      compileCmd = 'cat > main.cpp && g++ -std=gnu++23 main.cpp -lstdc++exp';
+      execCmd = './a.out';
       versionCmd = 'g++ --version';
       break;
     case 'java':
-      runCmd = 'cat > Main.java && javac Main.java && java Main';
+      compileCmd = 'cat > Main.java && javac Main.java';
+      execCmd = 'java Main';
       versionCmd = 'javac --version';
       break;
     case 'rust':
     case 'rs':
-      runCmd = 'cat > main.rs && rustc --edition=2024 main.rs && ./main';
+      compileCmd = 'cat > main.rs && rustc --edition=2024 main.rs';
+      execCmd = './main';
       versionCmd = 'rustc --version';
       break;
     case 'go':
     case 'golang':
-      runCmd = 'cat > main.go && go run main.go';
+      compileCmd = 'cat > main.go && go build -o main main.go';
+      execCmd = './main';
       versionCmd = 'go version';
       break;
     case 'c#':
     case 'csharp':
     case 'cs':
-      runCmd = 'mkdir -p app && cd app && cat > Program.cs && printf "%s\\n" "<Project Sdk=\\"Microsoft.NET.Sdk\\">" "  <PropertyGroup>" "    <OutputType>Exe</OutputType>" "    <TargetFramework>net10.0</TargetFramework>" "    <ImplicitUsings>enable</ImplicitUsings>" "    <Nullable>enable</Nullable>" "    <RestoreIgnoreFailedSources>true</RestoreIgnoreFailedSources>" "  </PropertyGroup>" "</Project>" > app.csproj && printf "%s\\n" "<?xml version=\\"1.0\\" encoding=\\"utf-8\\"?>" "<configuration>" "  <packageSources>" "    <clear />" "  </packageSources>" "</configuration>" > NuGet.Config && dotnet run --project app.csproj';
+      compileCmd = 'mkdir -p app && cd app && cat > Program.cs && printf "%s\\n" "<Project Sdk=\\"Microsoft.NET.Sdk\\">" "  <PropertyGroup>" "    <OutputType>Exe</OutputType>" "    <TargetFramework>net10.0</TargetFramework>" "    <ImplicitUsings>enable</ImplicitUsings>" "    <Nullable>enable</Nullable>" "    <RestoreIgnoreFailedSources>true</RestoreIgnoreFailedSources>" "  </PropertyGroup>" "</Project>" > app.csproj && printf "%s\\n" "<?xml version=\\"1.0\\" encoding=\\"utf-8\\"?>" "<configuration>" "  <packageSources>" "    <clear />" "  </packageSources>" "</configuration>" > NuGet.Config && dotnet build app.csproj';
+      execCmd = 'dotnet run --no-build --project app.csproj';
       versionCmd = 'dotnet --version';
       break;
     case 'haskell':
     case 'hs':
-      runCmd = 'cat > main.hs && runghc main.hs';
+      compileCmd = 'cat > main.hs && ghc -o main main.hs';
+      execCmd = './main';
       versionCmd = 'ghc --version';
       break;
     case 'lisp':
     case 'cl':
-      runCmd = 'cat > main.lisp && sbcl --script main.lisp';
+      compileCmd = 'cat > main.lisp';
+      execCmd = 'sbcl --script main.lisp';
       versionCmd = 'sbcl --version';
       break;
     case 'zig':
-      runCmd = 'cat > main.zig && zig run main.zig';
+      compileCmd = 'cat > main.zig && zig build-exe main.zig -femit-bin=main';
+      execCmd = './main';
       versionCmd = 'zig version';
       break;
     case 'odin':
-      runCmd = 'cat > main.odin && odin run main.odin -file -microarch:native';
+      compileCmd = 'cat > main.odin && odin build main.odin -file -out:main -microarch:native';
+      execCmd = './main';
       versionCmd = 'odin version';
       break;
     case 'ruby':
     case 'rb':
-      runCmd = 'cat > main.rb && ruby main.rb';
+      compileCmd = 'cat > main.rb';
+      execCmd = 'ruby main.rb';
       versionCmd = 'ruby --version';
       break;
     case 'php':
-      runCmd = 'cat > main.php && php main.php';
+      compileCmd = 'cat > main.php';
+      execCmd = 'php main.php';
       versionCmd = 'php --version';
       break;
     case 'lua':
-      runCmd = 'cat > main.lua && lua main.lua';
+      compileCmd = 'cat > main.lua';
+      execCmd = 'lua main.lua';
       versionCmd = 'lua -v';
       break;
     case 'bash':
     case 'sh':
-      runCmd = 'cat > main.sh && bash main.sh';
+      compileCmd = 'cat > main.sh';
+      execCmd = 'bash main.sh';
       versionCmd = 'bash --version';
       break;
     case 'perl':
     case 'pl':
-      runCmd = 'cat > main.pl && perl main.pl';
+      compileCmd = 'cat > main.pl';
+      execCmd = 'perl main.pl';
       versionCmd = 'perl --version';
       break;
     case 'kotlin':
     case 'kt':
-      runCmd = 'cat > main.kt && kotlinc main.kt -include-runtime -d main.jar 2>/dev/null && java -jar main.jar';
+      compileCmd = 'cat > main.kt && kotlinc main.kt -include-runtime -d main.jar 2>/dev/null';
+      execCmd = 'java -jar main.jar';
       versionCmd = 'kotlinc -version';
       break;
     case 'r':
-      runCmd = 'cat > main.R && Rscript main.R';
+      compileCmd = 'cat > main.R';
+      execCmd = 'Rscript main.R';
       versionCmd = 'Rscript --version';
       break;
     case 'elixir':
     case 'ex':
-      runCmd = 'cat > main.exs && elixir main.exs';
+      compileCmd = 'cat > main.exs';
+      execCmd = 'elixir main.exs';
       versionCmd = 'elixir --version';
       break;
     case 'nim':
-      runCmd = 'cat > main.nim && nim compile --run --hints:off main.nim';
+      compileCmd = 'cat > main.nim && nim compile --hints:off -o:main main.nim';
+      execCmd = './main';
       versionCmd = 'nim --version';
       break;
     case 'dart':
-      runCmd = 'cat > main.dart && dart run main.dart';
+      compileCmd = 'cat > main.dart && dart compile exe main.dart -o main';
+      execCmd = './main';
       versionCmd = 'dart --version';
       break;
     case 'sp':
-      runCmd = 'cat > main.sp && sp main.sp';
+      compileCmd = 'cat > main.sp';
+      execCmd = 'sp main.sp';
       versionCmd = 'echo 0.0.4';
       break;
     default:
@@ -186,7 +210,7 @@ export async function executeCode(language: string, code: string): Promise<Execu
   // Wrap user code with timing sentinels so we measure only the language runtime, not Docker overhead.
   // We print a sentinel line __T0__=<nanoseconds> before and __T1__=<nanoseconds> after execution.
   // These lines are stripped from output and used to compute actual execution time.
-  const timedRunCmd = `echo "__T0__=$(date +%s%N)" && ( ${runCmd} ); _exit=$?; echo "__T1__=$(date +%s%N)"; exit $_exit`;
+  const timedRunCmd = `${compileCmd} && echo "__T0__=$(date +%s%N)" && ( ${execCmd} ); _exit=$?; echo "__T1__=$(date +%s%N)"; exit $_exit`;
   const runEnv = [
     `HOME=${workDir}`,
     `XDG_CACHE_HOME=${workDir}/.cache`,
