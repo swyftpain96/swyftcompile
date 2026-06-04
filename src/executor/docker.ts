@@ -123,7 +123,7 @@ export async function executeCode(language: string, code: string): Promise<Execu
       versionCmd = 'zig version';
       break;
     case 'odin':
-      runCmd = 'cat > main.odin && odin run main.odin -file';
+      runCmd = 'cat > main.odin && odin run main.odin -file -microarch:native';
       versionCmd = 'odin version';
       break;
     case 'ruby':
