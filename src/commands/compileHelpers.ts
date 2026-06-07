@@ -39,6 +39,7 @@ export const EXTENSION_TO_LANG: Record<string, string> = {
   'dart': 'dart',
   'sp': 'sp',
   'clj': 'clojure',
+  'bb': 'babashka',
   'pas': 'pascal',
   'f90': 'fortran',
   'f': 'fortran',
@@ -131,6 +132,9 @@ export const LANGUAGE_FORBIDDEN_RULES: Record<string, ForbiddenRule[]> = {
   ],
   clojure: [
     { regex: /\b(clojure\.java\.shell|ProcessBuilder)\b/, message: 'shell and process operations are forbidden in this environment.' }
+  ],
+  babashka: [
+    { regex: /\b(clojure\.java\.shell|ProcessBuilder|babashka\.process)\b/, message: 'shell and process operations are forbidden in this environment.' }
   ],
   pascal: [
     { regex: /\b(ExecuteProcess|fpSystem|TProcess)\b/i, message: 'shell and process operations are forbidden in this environment.' }

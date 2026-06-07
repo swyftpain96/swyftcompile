@@ -191,9 +191,17 @@ export async function executeCode(language: string, code: string): Promise<Execu
       break;
     case 'clojure':
     case 'clj':
+    case 'clojure-jvm':
       compileCmd = 'cat > main.clj';
       execCmd = 'clojure -M main.clj';
       versionCmd = 'clojure -Sdescribe';
+      break;
+    case 'babashka':
+    case 'bb':
+    case 'clojure-fast':
+      compileCmd = 'cat > main.clj';
+      execCmd = 'bb main.clj';
+      versionCmd = 'bb --version';
       break;
     case 'pascal':
     case 'pas':

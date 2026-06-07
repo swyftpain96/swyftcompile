@@ -24,7 +24,7 @@ export const LANGUAGES_MESSAGE = {
     new EmbedBuilder()
       .setTitle('Supported Languages')
       .setColor('#5865F2')
-      .setDescription('Here is a list of supported languages and their abbreviations:\n\n- Python (`python`, `py`)\n- Node.js (`javascript`, `js`, `node`)\n- TypeScript (`typescript`, `ts`)\n- C++ (`cpp`, `c++`, `c`, `cc`)\n- Java (`java`)\n- Rust (`rust`, `rs`)\n- Go (`go`, `golang`)\n- C# (`c#`, `csharp`, `cs`)\n- Haskell (`haskell`, `hs`)\n- Lisp (`lisp`, `cl`)\n- Zig (`zig`)\n- Odin (`odin`)\n- Ruby (`ruby`, `rb`)\n- PHP (`php`)\n- Lua (`lua`)\n- Bash (`bash`, `sh`)\n- Perl (`perl`, `pl`)\n- Kotlin (`kotlin`, `kt`)\n- R (`r`)\n- Elixir (`elixir`, `ex`)\n- Nim (`nim`)\n- Dart (`dart`)\n- Clojure (`clojure`, `clj`)\n- Pascal (`pascal`, `pas`)\n- Fortran (`fortran`, `f90`, `f`)\n- Julia (`julia`, `jl`)\n- SP / SwyftPain (`sp`)')
+      .setDescription('Here is a list of supported languages and their abbreviations:\n\n- Python (`python`, `py`)\n- Node.js (`javascript`, `js`, `node`)\n- TypeScript (`typescript`, `ts`)\n- C++ (`cpp`, `c++`, `c`, `cc`)\n- Java (`java`)\n- Rust (`rust`, `rs`)\n- Go (`go`, `golang`)\n- C# (`c#`, `csharp`, `cs`)\n- Haskell (`haskell`, `hs`)\n- Lisp (`lisp`, `cl`)\n- Zig (`zig`)\n- Odin (`odin`)\n- Ruby (`ruby`, `rb`)\n- PHP (`php`)\n- Lua (`lua`)\n- Bash (`bash`, `sh`)\n- Perl (`perl`, `pl`)\n- Kotlin (`kotlin`, `kt`)\n- R (`r`)\n- Elixir (`elixir`, `ex`)\n- Nim (`nim`)\n- Dart (`dart`)\n- Clojure (`clojure`, `clj`, `clojure-jvm`)\n- Babashka (`babashka`, `bb`, `clojure-fast`)\n- Pascal (`pascal`, `pas`)\n- Fortran (`fortran`, `f90`, `f`)\n- Julia (`julia`, `jl`)\n- SP / SwyftPain (`sp`)')
       .setFooter({ text: CONTACT_FOOTER })
   ],
   components: [donoRow]

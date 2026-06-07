@@ -63,8 +63,14 @@ ENV PATH="/opt/odin:${PATH}"
 RUN wget -qO /usr/local/bin/sp https://github.com/swyftpain96/sp_lang/releases/download/V-0.3/sp \
     && chmod +x /usr/local/bin/sp
 
+# Install Babashka (fast native Clojure interpreter)
+RUN curl -sLO https://raw.githubusercontent.com/babashka/babashka/master/install \
+    && chmod +x install \
+    && ./install \
+    && rm install
+
 # Pre-warm Clojure cache so it doesn't try to download to read-only /root/.m2 at runtime
-RUN clojure -e "(println \"Clojure cache pre-warmed\")"
+RUN clojure -M -e "(println \"Clojure cache pre-warmed\")"
 
 WORKDIR /app
 
