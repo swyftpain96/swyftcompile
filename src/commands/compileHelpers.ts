@@ -37,7 +37,12 @@ export const EXTENSION_TO_LANG: Record<string, string> = {
   'exs': 'elixir',
   'nim': 'nim',
   'dart': 'dart',
-  'sp': 'sp'
+  'sp': 'sp',
+  'clj': 'clojure',
+  'pas': 'pascal',
+  'f90': 'fortran',
+  'f': 'fortran',
+  'jl': 'julia'
 };
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -123,6 +128,18 @@ export const LANGUAGE_FORBIDDEN_RULES: Record<string, ForbiddenRule[]> = {
   dart: [
     { regex: /\bimport\s+'dart:io'/, message: 'dart:io filesystem and process access is restricted.' },
     { regex: /\b(Process\.run|Process\.start|File\(.+\)\.delete|Directory\(.+\)\.delete)\b/, message: 'process and file operations are forbidden in this environment.' }
+  ],
+  clojure: [
+    { regex: /\b(clojure\.java\.shell|ProcessBuilder)\b/, message: 'shell and process operations are forbidden in this environment.' }
+  ],
+  pascal: [
+    { regex: /\b(ExecuteProcess|fpSystem|TProcess)\b/i, message: 'shell and process operations are forbidden in this environment.' }
+  ],
+  fortran: [
+    { regex: /\b(EXECUTE_COMMAND_LINE|SYSTEM)\b/i, message: 'shell execution is forbidden in this environment.' }
+  ],
+  julia: [
+    { regex: /\b(run\(|cmd|Base\.run|run\(`)\b/, message: 'shell execution is forbidden in this environment.' }
   ]
 };
 

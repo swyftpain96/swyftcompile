@@ -6,14 +6,18 @@ RUN pacman -Syu --noconfirm --needed \
     bash \
     ca-certificates \
     clang \
+    clojure \
     curl \
     dotnet-sdk \
     elixir \
+    fpc \
     gcc \
+    gcc-fortran \
     ghc \
     git \
     go \
     jdk-openjdk \
+    julia \
     lua \
     nim \
     nodejs \

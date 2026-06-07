@@ -189,6 +189,30 @@ export async function executeCode(language: string, code: string): Promise<Execu
       execCmd = './main';
       versionCmd = 'nim --version';
       break;
+    case 'clojure':
+    case 'clj':
+      compileCmd = 'cat > main.clj';
+      execCmd = 'clojure -M main.clj';
+      versionCmd = 'clojure -Sdescribe';
+      break;
+    case 'pascal':
+    case 'pas':
+      compileCmd = 'cat > main.pas && fpc main.pas';
+      execCmd = './main';
+      versionCmd = 'fpc -iV';
+      break;
+    case 'fortran':
+    case 'f90':
+      compileCmd = 'cat > main.f90 && gfortran main.f90 -o main';
+      execCmd = './main';
+      versionCmd = 'gfortran --version';
+      break;
+    case 'julia':
+    case 'jl':
+      compileCmd = 'cat > main.jl';
+      execCmd = 'julia main.jl';
+      versionCmd = 'julia --version';
+      break;
     case 'dart':
       compileCmd = 'cat > main.dart && dart compile exe main.dart -o main';
       execCmd = './main';
