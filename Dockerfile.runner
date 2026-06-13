@@ -60,7 +60,7 @@ RUN python -c "import json, urllib.request; data=json.load(urllib.request.urlope
     && rm -rf /opt/odin-tmp
 ENV PATH="/opt/odin:${PATH}"
 
-RUN wget -qO /usr/local/bin/sp https://github.com/swyftpain96/sp_lang/releases/download/V-0.3/sp \
+RUN wget -qO /usr/local/bin/sp https://github.com/swyftpain96/sp_lang/releases/download/V-0.4/sp \
     && chmod +x /usr/local/bin/sp
 
 # Install Babashka (fast native Clojure interpreter)
